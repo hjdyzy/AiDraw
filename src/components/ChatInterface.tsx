@@ -26,7 +26,8 @@ export const ChatInterface: React.FC = () => {
     setLoading,
     deleteMessage,
     sliceMessages,
-    fetchBalance
+    fetchBalance,
+    isSwitchingSession
   } = useAppStore();
   
   const [showArcade, setShowArcade] = useState(false);
@@ -376,7 +377,7 @@ export const ChatInterface: React.FC = () => {
       <InputArea
         onSend={handleSend}
         onStop={handleStop}
-        disabled={isLoading}
+        disabled={isLoading || isSwitchingSession}
         onOpenArcade={handleToggleArcade}
         isArcadeOpen={showArcade}
         externalAttachments={editAttachments}

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
 import { get as getVal, set as setVal, del as delVal } from 'idb-keyval';
 import { fetchBalance, BalanceInfo } from '../services/balanceService';
-import { AppSettings, ChatMessage, Part, ImageHistoryItem } from '../types';
+import { AppSettings, ChatMessage, Part, ImageHistoryItem, Session } from '../types';
 import { createThumbnail } from '../utils/imageUtils';
 
 // Custom IndexedDB storage
@@ -21,13 +21,17 @@ const storage: StateStorage = {
 interface AppState {
   apiKey: string | null;
   settings: AppSettings;
-  messages: ChatMessage[]; // Single Source of Truth
-  imageHistory: ImageHistoryItem[]; // 图片历史记录
+  messages: ChatMessage[]; // Active session messages
+  imageHistory: ImageHistoryItem[];
   isLoading: boolean;
   isSettingsOpen: boolean;
-  inputText: string; // Global input text state
+  inputText: string;
   balance: BalanceInfo | null;
-  installPrompt: any | null; // PWA Install Prompt Event
+  installPrompt: any | null;
+  sessions: Session[];
+  activeSessionId: string | null;
+  isSessionPanelOpen: boolean;
+  isSwitchingSession: boolean;
 
   setInstallPrompt: (prompt: any) => void;
   setApiKey: (key: string) => void;
@@ -46,6 +50,12 @@ interface AppState {
   removeApiKey: () => void;
   deleteMessage: (id: string) => void;
   sliceMessages: (index: number) => void;
+  // Session management
+  createSession: () => Promise<void>;
+  switchSession: (id: string) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  renameSession: (id: string, title: string) => void;
+  toggleSessionPanel: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -72,6 +82,10 @@ export const useAppStore = create<AppState>()(
       inputText: '',
       balance: null,
       installPrompt: null,
+      sessions: [],
+      activeSessionId: null,
+      isSessionPanelOpen: false,
+      isSwitchingSession: false,
 
       setInstallPrompt: (prompt) => set({ installPrompt: prompt }),
       setApiKey: (key) => set({ apiKey: key }),
@@ -90,10 +104,29 @@ export const useAppStore = create<AppState>()(
       updateSettings: (newSettings) => 
         set((state) => ({ settings: { ...state.settings, ...newSettings } })),
 
-      addMessage: (message) => 
-        set((state) => ({ 
-          messages: [...state.messages, message],
-        })),
+      addMessage: (message) =>
+        set((state) => {
+          const newMessages = [...state.messages, message];
+          // Update active session metadata
+          const sessions = state.sessions.map(s => {
+            if (s.id === state.activeSessionId) {
+              const firstUserMsg = newMessages.find(m => m.role === 'user');
+              const textPart = firstUserMsg?.parts.find(p => p.text);
+              const autoTitle = !s.title && textPart
+                ? textPart.text!.slice(0, 30) + (textPart.text!.length > 30 ? '...' : '')
+                : s.title;
+              return {
+                ...s,
+                title: autoTitle || s.title,
+                updatedAt: Date.now(),
+                messageCount: newMessages.length,
+                preview: textPart?.text?.slice(0, 50) || s.preview,
+              };
+            }
+            return s;
+          });
+          return { messages: newMessages, sessions };
+        }),
 
       updateLastMessage: (parts, isError = false, thinkingDuration) =>
         set((state) => {
@@ -243,7 +276,14 @@ export const useAppStore = create<AppState>()(
       
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
 
-      clearHistory: () => set({ messages: [] }),
+      clearHistory: () => set((state) => ({
+        messages: [],
+        sessions: state.sessions.map(s =>
+          s.id === state.activeSessionId
+            ? { ...s, messageCount: 0, updatedAt: Date.now() }
+            : s
+        ),
+      })),
 
       removeApiKey: () => set({ apiKey: null }),
 
@@ -262,6 +302,127 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           messages: state.messages.slice(0, index + 1),
         })),
+
+      // Session management
+      createSession: async () => {
+        const { activeSessionId, messages, sessions } = get();
+        // Save current session messages to IDB
+        if (activeSessionId && messages.length > 0) {
+          try {
+            await setVal(`session_messages_${activeSessionId}`, JSON.stringify(messages));
+          } catch (e) {
+            console.error('Failed to save session messages', e);
+          }
+        }
+
+        const newId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const newSession: Session = {
+          id: newId,
+          title: '',
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messageCount: 0,
+          preview: '',
+        };
+
+        // Cap at 50 sessions
+        let updatedSessions = [newSession, ...sessions];
+        if (updatedSessions.length > 50) {
+          const removed = updatedSessions.pop()!;
+          delVal(`session_messages_${removed.id}`).catch(console.error);
+        }
+
+        set({
+          sessions: updatedSessions,
+          activeSessionId: newId,
+          messages: [],
+          inputText: '',
+        });
+      },
+
+      switchSession: async (id) => {
+        const { activeSessionId, messages } = get();
+        if (id === activeSessionId) return;
+
+        set({ isSwitchingSession: true });
+
+        try {
+          // Save current session messages
+          if (activeSessionId && messages.length > 0) {
+            await setVal(`session_messages_${activeSessionId}`, JSON.stringify(messages));
+          }
+
+          // Load target session messages
+          let targetMessages: ChatMessage[] = [];
+          try {
+            const data = await getVal(`session_messages_${id}`);
+            if (data) {
+              targetMessages = JSON.parse(data as string);
+            }
+          } catch (e) {
+            console.error('Failed to load session messages', e);
+          }
+
+          set({
+            activeSessionId: id,
+            messages: targetMessages,
+            inputText: '',
+            isSwitchingSession: false,
+          });
+        } catch (e) {
+          console.error('Failed to switch session', e);
+          set({ isSwitchingSession: false });
+        }
+      },
+
+      deleteSession: async (id) => {
+        const { sessions, activeSessionId } = get();
+
+        // Clean up IDB
+        delVal(`session_messages_${id}`).catch(console.error);
+
+        const remaining = sessions.filter(s => s.id !== id);
+
+        if (id === activeSessionId) {
+          if (remaining.length > 0) {
+            // Switch to the most recent session
+            const target = remaining[0];
+            let targetMessages: ChatMessage[] = [];
+            try {
+              const data = await getVal(`session_messages_${target.id}`);
+              if (data) targetMessages = JSON.parse(data as string);
+            } catch (e) {
+              console.error('Failed to load session messages', e);
+            }
+            set({
+              sessions: remaining,
+              activeSessionId: target.id,
+              messages: targetMessages,
+              inputText: '',
+            });
+          } else {
+            // Create a new empty session
+            const newId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            set({
+              sessions: [{ id: newId, title: '', createdAt: Date.now(), updatedAt: Date.now(), messageCount: 0, preview: '' }],
+              activeSessionId: newId,
+              messages: [],
+              inputText: '',
+            });
+          }
+        } else {
+          set({ sessions: remaining });
+        }
+      },
+
+      renameSession: (id, title) =>
+        set((state) => ({
+          sessions: state.sessions.map(s =>
+            s.id === id ? { ...s, title } : s
+          ),
+        })),
+
+      toggleSessionPanel: () => set((state) => ({ isSessionPanelOpen: !state.isSessionPanelOpen })),
     }),
     {
       name: 'gemini-pro-storage',
@@ -269,9 +430,41 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         apiKey: state.apiKey,
         settings: state.settings,
-        imageHistory: state.imageHistory, // 持久化图片历史记录
-        messages: state.messages, // 持久化对话历史
+        imageHistory: state.imageHistory,
+        messages: state.messages,
+        sessions: state.sessions,
+        activeSessionId: state.activeSessionId,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        // Migration: existing messages but no sessions
+        if (state.messages.length > 0 && (!state.sessions || state.sessions.length === 0)) {
+          const id = `migrated_${Date.now()}`;
+          const firstUserMsg = state.messages.find(m => m.role === 'user');
+          const textPart = firstUserMsg?.parts.find(p => p.text);
+          const title = textPart
+            ? textPart.text!.slice(0, 30) + (textPart.text!.length > 30 ? '...' : '')
+            : '已有对话';
+          useAppStore.setState({
+            sessions: [{
+              id,
+              title,
+              createdAt: state.messages[0]?.timestamp || Date.now(),
+              updatedAt: state.messages[state.messages.length - 1]?.timestamp || Date.now(),
+              messageCount: state.messages.length,
+              preview: textPart?.text?.slice(0, 50) || '',
+            }],
+            activeSessionId: id,
+          });
+        } else if (!state.sessions || state.sessions.length === 0) {
+          // Fresh install: create default empty session
+          const id = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+          useAppStore.setState({
+            sessions: [{ id, title: '', createdAt: Date.now(), updatedAt: Date.now(), messageCount: 0, preview: '' }],
+            activeSessionId: id,
+          });
+        }
+      },
     }
   )
 );

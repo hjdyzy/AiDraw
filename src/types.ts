@@ -63,3 +63,12 @@ export interface PromptItem {
   mode: 'edit' | 'generate';
   category: string;
 }
+
+export interface Session {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messageCount: number;
+  preview: string;
+}

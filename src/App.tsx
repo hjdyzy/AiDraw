@@ -6,7 +6,7 @@ import { ChatInterface } from './components/ChatInterface';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { GlobalDialog } from './components/ui/GlobalDialog';
 import { formatBalance } from './services/balanceService';
-import { Settings, Sun, Moon, Github, ImageIcon, DollarSign, Download, Sparkles } from 'lucide-react';
+import { Settings, Sun, Moon, Github, ImageIcon, DollarSign, Download, Sparkles, Menu } from 'lucide-react';
 import { lazyWithRetry, preloadComponents } from './utils/lazyLoadUtils';
 
 // Lazy load components
@@ -14,9 +14,10 @@ const ApiKeyModal = lazyWithRetry(() => import('./components/ApiKeyModal').then(
 const SettingsPanel = lazyWithRetry(() => import('./components/SettingsPanel').then(module => ({ default: module.SettingsPanel })));
 const ImageHistoryPanel = lazyWithRetry(() => import('./components/ImageHistoryPanel').then(module => ({ default: module.ImageHistoryPanel })));
 const PromptLibraryPanel = lazyWithRetry(() => import('./components/PromptLibraryPanel').then(module => ({ default: module.PromptLibraryPanel })));
+const SessionPanel = lazyWithRetry(() => import('./components/SessionPanel').then(module => ({ default: module.SessionPanel })));
 
 const App: React.FC = () => {
-  const { apiKey, setApiKey, settings, updateSettings, isSettingsOpen, toggleSettings, imageHistory, balance, fetchBalance, installPrompt, setInstallPrompt } = useAppStore();
+  const { apiKey, setApiKey, settings, updateSettings, isSettingsOpen, toggleSettings, imageHistory, balance, fetchBalance, installPrompt, setInstallPrompt, isSessionPanelOpen, toggleSessionPanel } = useAppStore();
   const { togglePromptLibrary, isPromptLibraryOpen, showDialog, addToast } = useUiStore();
 
   useEffect(() => {
@@ -60,6 +61,7 @@ const App: React.FC = () => {
       () => import('./components/SettingsPanel'),
       () => import('./components/ImageHistoryPanel'),
       () => import('./components/PromptLibraryPanel'),
+      () => import('./components/SessionPanel'),
       // Also preload components used in ChatInterface
       () => import('./components/ThinkingIndicator'),
       () => import('./components/MessageBubble'),
@@ -179,6 +181,19 @@ const App: React.FC = () => {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white/50 dark:bg-gray-950/50 px-6 py-4 backdrop-blur-md z-10 transition-colors duration-200">
         <div className="flex items-center gap-3">
+          {apiKey && (
+            <button
+              onClick={toggleSessionPanel}
+              className={`rounded-lg p-2 transition focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                isSessionPanelOpen
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
+              }`}
+              title="对话列表"
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+          )}
           <a 
             href="https://undyapi.com" 
             target="_blank" 
@@ -274,6 +289,47 @@ const App: React.FC = () => {
 
       {/* Main Content */}
       <main className="flex-1 relative overflow-hidden flex flex-row">
+        {/* Session Sidebar (Left) */}
+        <div
+          className={`
+            absolute inset-0 z-20 flex justify-start
+            transition-all duration-300 ease-in-out
+            ${isSessionPanelOpen
+              ? 'bg-black/50 backdrop-blur-sm pointer-events-auto'
+              : 'bg-transparent backdrop-blur-none pointer-events-none'
+            }
+
+            sm:static sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:pointer-events-auto sm:overflow-hidden
+            sm:transition-[width,border-color]
+            ${isSessionPanelOpen
+              ? 'sm:w-72 sm:border-r sm:border-gray-200 dark:sm:border-gray-800'
+              : 'sm:w-0 sm:border-r-0 sm:border-transparent'
+            }
+          `}
+          onClick={() => {
+            if (window.innerWidth < 640 && isSessionPanelOpen) {
+              toggleSessionPanel();
+            }
+          }}
+        >
+          <div
+            className={`
+              w-full h-full sm:w-72 bg-white dark:bg-gray-950
+              shadow-2xl sm:shadow-none
+              overflow-y-auto overflow-x-hidden border-r border-gray-200 dark:border-gray-800 sm:border-none
+
+              transition-transform duration-300 ease-in-out
+              ${isSessionPanelOpen ? 'translate-x-0' : '-translate-x-full'}
+              sm:translate-x-0
+            `}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Suspense fallback={<div className="p-4 text-center text-gray-500">加载中...</div>}>
+              <SessionPanel />
+            </Suspense>
+          </div>
+        </div>
+
         {/* Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
           <ChatInterface />
