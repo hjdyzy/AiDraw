@@ -1,5 +1,7 @@
 # Gemini 3 Pro Client (Frontend Only)
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdeijing%2FUndyDraw)
+
 这是一个基于 React 的现代化纯前端应用，专为与 Google 的 **Gemini 3 Pro** 模型交互而设计。它提供了一个流畅的聊天界面，支持多模态输入，并在等待 AI 思考时提供趣味性的互动体验。
 
 ## ✨ 主要特性
@@ -124,6 +126,19 @@
    ```bash
    bun build
    ```
+
+### Vercel 一键部署
+
+点击下方按钮即可将项目部署到 Vercel，无需任何额外配置：
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fdeijing%2FUndyDraw)
+
+部署完成后：
+1. 访问 Vercel 分配的 `.vercel.app` 域名
+2. 在弹窗中输入你的 Gemini API Key 即可使用
+3. 如需自定义域名，在 Vercel Dashboard > Project Settings > Domains 中添加
+
+> 项目已包含 `vercel.json` 配置，Vercel 会自动使用 Bun 安装依赖并构建。`api/` 目录下的 Edge Function 也会自动部署。
 
 ## ⚙️ 使用说明
 
