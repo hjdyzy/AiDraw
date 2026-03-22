@@ -11,9 +11,11 @@ interface Props {
   onOpenArcade?: () => void;
   isArcadeOpen?: boolean;
   disabled: boolean;
+  externalAttachments?: Attachment[] | null;
+  onExternalAttachmentsConsumed?: () => void;
 }
 
-export const InputArea: React.FC<Props> = ({ onSend, onStop, onOpenArcade, isArcadeOpen, disabled }) => {
+export const InputArea: React.FC<Props> = ({ onSend, onStop, onOpenArcade, isArcadeOpen, disabled, externalAttachments, onExternalAttachmentsConsumed }) => {
   const { inputText, setInputText, settings } = useAppStore();
   const { togglePromptLibrary, isPromptLibraryOpen } = useUiStore();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -105,6 +107,16 @@ export const InputArea: React.FC<Props> = ({ onSend, onStop, onOpenArcade, isArc
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
   }, [disabled, processFiles, attachments.length]);
+
+  // Handle external attachments injected from edit action
+  useEffect(() => {
+    if (externalAttachments && externalAttachments.length > 0) {
+      setAttachments(externalAttachments);
+      onExternalAttachmentsConsumed?.();
+      // Focus textarea
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  }, [externalAttachments]);
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

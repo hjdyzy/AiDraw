@@ -5,8 +5,10 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { streamGeminiResponse, generateContent } from '../services/geminiService';
 import { convertMessagesToHistory } from '../utils/messageUtils';
 import { ChatMessage, Attachment, Part } from '../types';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, FileDown } from 'lucide-react';
 import { lazyWithRetry } from '../utils/lazyLoadUtils';
+import { useUiStore } from '../store/useUiStore';
+import { exportAsMarkdown, downloadExport } from '../utils/exportUtils';
 
 // Lazy load components
 const ThinkingIndicator = lazyWithRetry(() => import('./ThinkingIndicator').then(m => ({ default: m.ThinkingIndicator })));
@@ -29,8 +31,10 @@ export const ChatInterface: React.FC = () => {
   
   const [showArcade, setShowArcade] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [editAttachments, setEditAttachments] = useState<Attachment[] | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const { addToast } = useUiStore();
 
   useEffect(() => {
     if (isLoading) {
@@ -265,12 +269,68 @@ export const ChatInterface: React.FC = () => {
     handleSend(text || '', attachments);
   };
 
+  const handleEdit = (id: string) => {
+    if (isLoading) return;
+
+    const index = messages.findIndex(m => m.id === id);
+    if (index === -1) return;
+
+    const message = messages[index];
+    if (message.role !== 'user') return;
+
+    // Extract text and images
+    const textPart = message.parts.find(p => p.text);
+    const imageParts = message.parts.filter(p => p.inlineData);
+
+    const attachments: Attachment[] = imageParts.map(p => ({
+      file: new File([], "placeholder"),
+      preview: `data:${p.inlineData!.mimeType};base64,${p.inlineData!.data}`,
+      base64Data: p.inlineData!.data || '',
+      mimeType: p.inlineData!.mimeType || ''
+    }));
+
+    // Fill input with original text
+    useAppStore.getState().setInputText(textPart?.text || '');
+
+    // Set attachments for InputArea to pick up
+    setEditAttachments(attachments.length > 0 ? attachments : null);
+
+    // Slice history to remove this message and everything after
+    sliceMessages(index - 1);
+
+    addToast('已回填消息，编辑后重新发送', 'info');
+  };
+
+  const clearEditAttachments = () => {
+    setEditAttachments(null);
+  };
+
+  const handleExport = () => {
+    if (messages.length === 0) return;
+    const md = exportAsMarkdown(messages);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    downloadExport(md, `undydraw-chat-${timestamp}.md`);
+    addToast('对话已导出', 'success');
+  };
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-gray-950 transition-colors duration-200">
-      <div 
+      <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 space-y-8 scroll-smooth overscroll-y-contain"
+        className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 space-y-8 scroll-smooth overscroll-y-contain relative"
       >
+        {/* Export button */}
+        {messages.length > 0 && !isLoading && (
+          <div className="flex justify-end sticky top-0 z-10">
+            <button
+              onClick={handleExport}
+              className="p-1.5 rounded-lg bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+              title="导出对话"
+            >
+              <FileDown className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {messages.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center text-center opacity-40 select-none">
             <div className="mb-6 rounded-3xl bg-gray-50 dark:bg-gray-900 p-8 shadow-2xl ring-1 ring-gray-200 dark:ring-gray-800 transition-colors duration-200">
@@ -286,12 +346,13 @@ export const ChatInterface: React.FC = () => {
         {messages.map((msg, index) => (
           <ErrorBoundary key={msg.id}>
             <Suspense fallback={<div className="h-12 w-full animate-pulse bg-gray-100 dark:bg-gray-800 rounded-lg mb-4"></div>}>
-              <MessageBubble 
-                message={msg} 
+              <MessageBubble
+                message={msg}
                 isLast={index === messages.length - 1}
                 isGenerating={isLoading}
                 onDelete={handleDelete}
                 onRegenerate={handleRegenerate}
+                onEdit={handleEdit}
               />
             </Suspense>
           </ErrorBoundary>
@@ -312,12 +373,14 @@ export const ChatInterface: React.FC = () => {
         )}
       </div>
 
-      <InputArea 
-        onSend={handleSend} 
-        onStop={handleStop} 
+      <InputArea
+        onSend={handleSend}
+        onStop={handleStop}
         disabled={isLoading}
         onOpenArcade={handleToggleArcade}
         isArcadeOpen={showArcade}
+        externalAttachments={editAttachments}
+        onExternalAttachmentsConsumed={clearEditAttachments}
       />
     </div>
   );

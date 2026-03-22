@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChatMessage, Part } from '../types';
-import { User, Sparkles, ChevronDown, ChevronRight, BrainCircuit, Trash2, RotateCcw, Download } from 'lucide-react';
+import { User, Sparkles, ChevronDown, ChevronRight, BrainCircuit, Trash2, RotateCcw, Download, Copy, Pencil } from 'lucide-react';
 import { useUiStore } from '../store/useUiStore';
 import { downloadImage, openImageInNewTab } from '../utils/imageUtils';
 
@@ -12,6 +12,7 @@ interface Props {
   isGenerating: boolean;
   onDelete: (id: string) => void;
   onRegenerate: (id: string) => void;
+  onEdit?: (id: string) => void;
 }
 
 const ThinkingContentItem: React.FC<{ part: Part }> = ({ part }) => {
@@ -140,11 +141,11 @@ const ThinkingBlock: React.FC<{ parts: Part[], duration?: number, isFinished: bo
   );
 };
 
-export const MessageBubble: React.FC<Props> = ({ message, isLast, isGenerating, onDelete, onRegenerate }) => {
+export const MessageBubble: React.FC<Props> = ({ message, isLast, isGenerating, onDelete, onRegenerate, onEdit }) => {
   const isUser = message.role === 'user';
   const [showActions, setShowActions] = useState(false);
   const actionsDisabled = isGenerating;
-  const { showDialog } = useUiStore();
+  const { showDialog, addToast } = useUiStore();
 
   const handleDelete = () => {
     showDialog({
@@ -153,6 +154,22 @@ export const MessageBubble: React.FC<Props> = ({ message, isLast, isGenerating, 
         message: "您确定要删除这条消息吗？",
         confirmLabel: "删除",
         onConfirm: () => onDelete(message.id)
+    });
+  };
+
+  const handleCopy = () => {
+    const text = message.parts
+      .filter(p => p.text && !p.thought)
+      .map(p => p.text)
+      .join('\n');
+    if (!text) {
+      addToast('没有可复制的文本内容', 'info');
+      return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      addToast('已复制', 'success');
+    }).catch(() => {
+      addToast('复制失败', 'error');
     });
   };
 
@@ -281,14 +298,30 @@ export const MessageBubble: React.FC<Props> = ({ message, isLast, isGenerating, 
            {/* Actions */}
            {!actionsDisabled && (
              <div className={`flex items-center gap-1 transition-opacity duration-200 ${showActions ? 'opacity-100' : 'opacity-0'}`}>
-                <button 
+                {isUser && onEdit && (
+                  <button
+                    onClick={() => onEdit(message.id)}
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    title="编辑并重新发送"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                )}
+                <button
+                  onClick={handleCopy}
+                  className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                  title="复制文本"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+                <button
                   onClick={() => onRegenerate(message.id)}
                   className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
                   title="从此重新生成"
                 >
                   <RotateCcw className="h-3 w-3" />
                 </button>
-                <button 
+                <button
                   onClick={handleDelete}
                   className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                   title="删除消息"

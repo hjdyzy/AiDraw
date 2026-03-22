@@ -270,6 +270,7 @@ export const useAppStore = create<AppState>()(
         apiKey: state.apiKey,
         settings: state.settings,
         imageHistory: state.imageHistory, // 持久化图片历史记录
+        messages: state.messages, // 持久化对话历史
       }),
     }
   )
