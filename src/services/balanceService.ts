@@ -15,7 +15,7 @@ export const fetchBalance = async (
   apiKey: string,
   settings: AppSettings
 ): Promise<BalanceInfo> => {
-  const baseUrl = settings.customEndpoint || 'https://undyapi.com';
+  const baseUrl = settings.customEndpoint || 'https://api.ikuncode.cc';
 
   try {
     // 1. 查询订阅信息(总额度)

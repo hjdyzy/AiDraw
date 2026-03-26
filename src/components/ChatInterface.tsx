@@ -310,7 +310,7 @@ export const ChatInterface: React.FC = () => {
     if (messages.length === 0) return;
     const md = exportAsMarkdown(messages);
     const timestamp = new Date().toISOString().slice(0, 10);
-    downloadExport(md, `undydraw-chat-${timestamp}.md`);
+    downloadExport(md, `aidraw-chat-${timestamp}.md`);
     addToast('对话已导出', 'success');
   };
 

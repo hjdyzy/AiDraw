@@ -337,7 +337,7 @@ export const SettingsPanel: React.FC = () => {
                 </div>
               </label>
               <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-                 显示模型的内部思考过程。对于不支持思考的模型（例如 gemini-2.5-flash-image / Nano Banana），请禁用此选项。
+                 显示模型的内部思考过程。对于不支持思考的模型（例如 gemini-2.5-flash-image），请禁用此选项。
               </p>
             </section>
           </div>
@@ -404,7 +404,7 @@ export const SettingsPanel: React.FC = () => {
               className="w-full flex items-center justify-center gap-2 rounded-lg border border-purple-200 dark:border-purple-500/30 bg-purple-50 dark:bg-purple-500/10 p-3 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/20 transition"
             >
               <Download className="h-4 w-4" />
-              <span>安装 UndyDraw 应用</span>
+              <span>安装 AiDraw 应用</span>
             </button>
             <p className="mt-2 text-xs text-center text-gray-400 dark:text-gray-500">
               安装到您的设备以获得原生应用体验。
@@ -480,7 +480,7 @@ export const SettingsPanel: React.FC = () => {
         {/* Info */}
         <div className="mt-1 pb-4 text-center text-[10px] text-gray-400 dark:text-gray-600 space-y-1">
            <p>模型: {settings.modelName || 'gemini-3-pro-image-preview'}</p>
-           <p className="truncate px-4">接口地址: {settings.customEndpoint || 'https://undyapi.com'}</p>
+           <p className="truncate px-4">接口地址: {settings.customEndpoint || 'https://api.ikuncode.cc'}</p>
         </div>
       </div>
     </div>

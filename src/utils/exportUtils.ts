@@ -5,7 +5,7 @@ import { ChatMessage } from '../types';
  */
 export const exportAsMarkdown = (messages: ChatMessage[]): string => {
   const lines: string[] = [];
-  lines.push('# UndyDraw 对话记录');
+  lines.push('# AiDraw 对话记录');
   lines.push('');
   lines.push(`导出时间：${new Date().toLocaleString()}`);
   lines.push('');

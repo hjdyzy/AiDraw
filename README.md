@@ -1,4 +1,4 @@
-# Gemini 3 Pro Client (Frontend Only)
+# AiDraw
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhjdyzy%2FUndyDraw)
 
@@ -101,7 +101,7 @@
 1. **克隆仓库**
 
    ```bash
-   git clone https://github.com/deijing/UndyDraw.git
+   git clone https://github.com/hjdyzy/UndyDraw.git
    cd UndyDraw
    ```
 
@@ -192,7 +192,7 @@ http://localhost:3000/?endpoint=https://my-proxy.com&model=gemini-2.0-flash
 - **剩余**：剩余可用额度
 - **刷新**：点击右上角刷新按钮更新数据
 
-> 注意：余额查询功能仅支持 OpenAI 兼容的 API Endpoint（如 `undyapi.com`）
+> 注意：余额查询功能仅支持 OpenAI 兼容的 API Endpoint
 
 ### 6. 高级设置
 
@@ -261,4 +261,3 @@ AGPL-3.0
 ## 🙏 致谢
 
 - 原项目：[faithleysath/UndyDraw](https://github.com/faithleysath/UndyDraw)
-- API 赞助：[Undy API](https://undyapi.com)

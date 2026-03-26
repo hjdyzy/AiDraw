@@ -194,19 +194,16 @@ const App: React.FC = () => {
               <Menu className="h-6 w-6" />
             </button>
           )}
-          <a 
-            href="https://undyapi.com" 
-            target="_blank" 
+          <a
+            href="https://github.com/hjdyzy/UndyDraw"
+            target="_blank"
             rel="noopener noreferrer"
             className="flex h-10 w-10 items-center justify-center overflow-hidden hover:opacity-80 transition-opacity"
           >
              <img src="/logo.svg" alt="Logo" className="h-full w-full object-cover" />
           </a>
           <div className="hidden sm:block">
-            <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">Nano Banana Pro</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              由 <a href="https://undyapi.com" target="_blank" rel="noopener noreferrer" className="hover:text-blue-500 hover:underline transition-colors">Undy API</a> 赞助联合开发
-            </p>
+            <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">AiDraw</h1>
           </div>
         </div>
         
@@ -237,7 +234,7 @@ const App: React.FC = () => {
             )}
 
             <a
-              href="https://github.com/faithleysath/UndyDraw"
+              href="https://github.com/hjdyzy/UndyDraw"
               target="_blank"
               rel="noopener noreferrer"
               className="group rounded-lg p-2 text-gray-500 dark:text-gray-400 transition hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

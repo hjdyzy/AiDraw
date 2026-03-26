@@ -84,7 +84,7 @@ export const ApiKeyModal: React.FC = () => {
                       value={endpoint}
                       onChange={(e) => setEndpoint(e.currentTarget.value)}
                       className="w-full rounded-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:border-blue-500 focus:outline-none"
-                      placeholder="https://undyapi.com"
+                      placeholder="https://api.ikuncode.cc"
                     />
                   </div>
                   <div>
@@ -113,7 +113,7 @@ export const ApiKeyModal: React.FC = () => {
 
         <div className="mt-6 flex justify-center">
           <a 
-            href="https://vip.undyingapi.com/console/token" 
+            href="https://api.ikuncode.cc/console/token" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center text-sm text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition"

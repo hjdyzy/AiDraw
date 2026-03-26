@@ -21,9 +21,9 @@ export default defineConfig(({ mode }) => {
             enabled: true
           },
           manifest: {
-            name: 'UndyDraw',
-            short_name: 'UndyDraw',
-            description: 'Nano Banana Pro在线客户端',
+            name: 'AiDraw',
+            short_name: 'AiDraw',
+            description: 'AI 画图在线客户端',
             theme_color: '#ffffff',
             background_color: '#ffffff',
             display: 'standalone',
